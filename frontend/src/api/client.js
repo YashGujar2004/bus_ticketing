@@ -46,6 +46,7 @@ export const authAPI = {
 export const busAPI = {
   list: (params) => client.get('/buses', { params }),
   get: (id) => client.get(`/buses/${id}`),
+  cities: () => client.get('/buses/cities'),
   aiSearch: (query) => client.post('/buses/ai-search', { query }),
   create: (data) => client.post('/buses', data),
   update: (id, data) => client.put(`/buses/${id}`, data),

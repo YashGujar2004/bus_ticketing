@@ -43,7 +43,7 @@ class BusSearchQuery(BaseModel):
 
 
 class AISearchQuery(BaseModel):
-    """Natural language search input for Gemini AI parsing."""
+    """Natural language search input for OpenAI ChatGPT parsing."""
     query: str = Field(
         ...,
         min_length=5,

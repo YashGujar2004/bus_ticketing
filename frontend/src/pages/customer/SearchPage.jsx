@@ -12,6 +12,102 @@ import Modal from '../../components/Modal';
 import { SkeletonCard } from '../../components/LoadingSkeleton';
 import './SearchPage.css';
 
+function CityAutocompleteInput({ id, label, placeholder, value, onChange, options = [], datalistId }) {
+  const [open, setOpen] = useState(false);
+
+  const filtered = !value.trim()
+    ? options
+    : options.filter((c) => c.toLowerCase().includes(value.toLowerCase()));
+
+  return (
+    <div className="input-group" style={{ position: 'relative' }}>
+      <label htmlFor={id}>{label}</label>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <input
+          id={id}
+          className="input"
+          placeholder={placeholder}
+          list={datalistId}
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 200)}
+          autoComplete="off"
+          style={{ paddingRight: '28px', width: '100%' }}
+        />
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          tabIndex={-1}
+          style={{
+            position: 'absolute',
+            right: '8px',
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            padding: '2px 4px',
+            fontSize: '0.75rem',
+          }}
+          title="Show existing cities"
+        >
+          ▼
+        </button>
+      </div>
+      {open && filtered.length > 0 && (
+        <ul
+          className="city-autocomplete-dropdown glass-card"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 4px)',
+            left: 0,
+            right: 0,
+            zIndex: 99,
+            maxHeight: '190px',
+            overflowY: 'auto',
+            margin: 0,
+            padding: '6px',
+            listStyle: 'none',
+            borderRadius: '8px',
+            border: '1px solid var(--glass-border)',
+            background: '#131826',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.45)',
+          }}
+        >
+          {filtered.map((city) => (
+            <li
+              key={city}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(city);
+                setOpen(false);
+              }}
+              style={{
+                padding: '8px 12px',
+                cursor: 'pointer',
+                borderRadius: '6px',
+                fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: value.toLowerCase() === city.toLowerCase() ? 'var(--primary-400)' : 'var(--text-primary)',
+                fontWeight: value.toLowerCase() === city.toLowerCase() ? '600' : '400',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              <span>📍</span> {city}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function SearchPage() {
   const { isAuthenticated } = useAuth();
   const toast = useToast();
@@ -24,6 +120,9 @@ export default function SearchPage() {
   const [aiParams, setAiParams] = useState(null);
   const [aiMessage, setAiMessage] = useState('');
 
+  // Existing database cities for dropdown autocomplete
+  const [cities, setCities] = useState({ origins: [], destinations: [], all_cities: [] });
+
   // Standard search filters
   const [filters, setFilters] = useState({
     origin: '', destination: '', travel_date: '', bus_type: '',
@@ -34,8 +133,20 @@ export default function SearchPage() {
   const [passengers, setPassengers] = useState([{ full_name: '', age: '', gender: 'Male' }]);
   const [bookingLoading, setBookingLoading] = useState(false);
 
-  // ── Load buses on mount ─────────────────────────────────────────────
-  useEffect(() => { fetchBuses(); }, []);
+  // ── Load buses and cities on mount ──────────────────────────────────
+  useEffect(() => {
+    fetchBuses();
+    fetchCities();
+  }, []);
+
+  const fetchCities = async () => {
+    try {
+      const res = await busAPI.cities();
+      setCities(res.data);
+    } catch {
+      // Silently ignore if cities endpoint is temporarily unavailable
+    }
+  };
 
   const fetchBuses = async (params = {}) => {
     setLoading(true);
@@ -166,16 +277,24 @@ export default function SearchPage() {
       {/* Standard Search */}
       <section className="standard-search">
         <form onSubmit={handleStandardSearch} className="filter-form">
-          <div className="input-group">
-            <label htmlFor="filter-origin">Origin</label>
-            <input id="filter-origin" className="input" placeholder="From city"
-              value={filters.origin} onChange={(e) => setFilters({ ...filters, origin: e.target.value })} />
-          </div>
-          <div className="input-group">
-            <label htmlFor="filter-dest">Destination</label>
-            <input id="filter-dest" className="input" placeholder="To city"
-              value={filters.destination} onChange={(e) => setFilters({ ...filters, destination: e.target.value })} />
-          </div>
+          <CityAutocompleteInput
+            id="filter-origin"
+            label="Origin"
+            placeholder="From city"
+            datalistId="origins-list"
+            value={filters.origin}
+            onChange={(val) => setFilters({ ...filters, origin: val })}
+            options={cities.origins}
+          />
+          <CityAutocompleteInput
+            id="filter-dest"
+            label="Destination"
+            placeholder="To city"
+            datalistId="destinations-list"
+            value={filters.destination}
+            onChange={(val) => setFilters({ ...filters, destination: val })}
+            options={cities.destinations}
+          />
           <div className="input-group">
             <label htmlFor="filter-date">Travel Date</label>
             <input id="filter-date" className="input" type="date"

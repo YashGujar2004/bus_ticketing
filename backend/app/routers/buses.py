@@ -45,6 +45,19 @@ def list_buses(
     return query.order_by(Bus.departure_time.asc()).all()
 
 
+@router.get("/cities")
+def get_cities(db: Session = Depends(get_db)):
+    """Get distinct origins and destinations of active buses for autocomplete dropdowns."""
+    origins = [r[0] for r in db.query(Bus.origin).filter(Bus.status == "Active").distinct().all() if r[0]]
+    destinations = [r[0] for r in db.query(Bus.destination).filter(Bus.status == "Active").distinct().all() if r[0]]
+    all_cities = sorted(list(set(origins + destinations)))
+    return {
+        "origins": sorted(origins),
+        "destinations": sorted(destinations),
+        "all_cities": all_cities,
+    }
+
+
 @router.get("/{bus_id}", response_model=BusResponse)
 def get_bus(bus_id: int, db: Session = Depends(get_db)):
     """Get detailed info for a specific bus."""
@@ -57,9 +70,9 @@ def get_bus(bus_id: int, db: Session = Depends(get_db)):
 @router.post("/ai-search", response_model=AISearchResponse)
 def ai_search(payload: AISearchQuery, db: Session = Depends(get_db)):
     """
-    AI-powered natural language bus search using Google Gemini.
+    AI-powered natural language bus search using OpenAI ChatGPT.
 
-    The server injects the current date into the Gemini system prompt so
+    The server injects the current date into the OpenAI system prompt so
     relative expressions like "tomorrow" or "next Friday" are resolved to
     absolute dates. Results are scored and ranked by relevance.
     """

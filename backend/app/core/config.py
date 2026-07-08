@@ -7,15 +7,15 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     # ── Database ──────────────────────────────────────────────────────────
-    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/bus_ticketing"
+    DATABASE_URL: str = "postgresql://postgres:wifispec@localhost:5432/bus_ticketing"
 
     # ── JWT Authentication ────────────────────────────────────────────────
-    SECRET_KEY: str = "secret-key"
+    SECRET_KEY: str = "bus-ticketing-dev-secret-key-2026"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
-    # ── Google Gemini AI ──────────────────────────────────────────────────
-    GEMINI_API_KEY: str = "api-key"
+    # ── AI Providers ──────────────────────────────────────────────────────
+    OPENAI_API_KEY: str = ""
 
     model_config = {
         "env_file": ".env",

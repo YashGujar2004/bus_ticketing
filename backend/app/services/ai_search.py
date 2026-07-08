@@ -1,19 +1,19 @@
 """
-AI-Powered Bus Search Service — Google Gemini Integration.
+AI-Powered Bus Search Service — OpenAI ChatGPT Integration.
 
 Converts natural language travel queries into structured search parameters
-using Gemini's structured output (JSON mode). The server injects the current
+using OpenAI ChatGPT's structured output (JSON mode). The server injects the current
 date into the system prompt so relative expressions like "tomorrow" or
 "next Friday" are resolved into absolute YYYY-MM-DD dates by the LLM.
 """
 
 import json
 import logging
+import time
 from datetime import date, datetime, timedelta
 from typing import Optional
 
-from google import genai
-from google.genai import types as genai_types
+from openai import OpenAI
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
@@ -22,12 +22,13 @@ from app.models.bus import Bus
 
 logger = logging.getLogger(__name__)
 
-def _get_gemini_client() -> genai.Client:
-    """Create a Gemini client using the configured API key."""
+
+def _get_openai_client() -> OpenAI:
+    """Create an OpenAI client using the configured API key."""
     settings = get_settings()
-    if not settings.GEMINI_API_KEY:
-        raise RuntimeError("GEMINI_API_KEY is not set in .env")
-    return genai.Client(api_key=settings.GEMINI_API_KEY)
+    if not settings.OPENAI_API_KEY:
+        raise RuntimeError("OPENAI_API_KEY is not set in .env or settings")
+    return OpenAI(api_key=settings.OPENAI_API_KEY)
 
 
 # ── System Prompt Template ───────────────────────────────────────────────────
@@ -97,10 +98,10 @@ def _build_system_prompt() -> str:
     )
 
 
-def _parse_gemini_response(raw_text: str) -> dict:
+def _parse_ai_response(raw_text: str) -> dict:
     """
-    Parse the raw Gemini response text into a Python dict.
-    Handles cases where the LLM wraps output in markdown code fences.
+    Parse the raw OpenAI response text into a Python dict.
+    Handles cases where output is wrapped in markdown code fences.
     """
     text = raw_text.strip()
 
@@ -113,7 +114,7 @@ def _parse_gemini_response(raw_text: str) -> dict:
     try:
         return json.loads(text)
     except json.JSONDecodeError as e:
-        logger.warning(f"Failed to parse Gemini response as JSON: {e}\nRaw: {raw_text}")
+        logger.warning(f"Failed to parse OpenAI response as JSON: {e}\nRaw: {raw_text}")
         return {"error": f"Failed to parse AI response: {str(e)}"}
 
 
@@ -182,20 +183,16 @@ def _score_bus(bus: Bus, params: dict) -> float:
 
 # ── Model Fallback Chain ─────────────────────────────────────────────────────
 # If the primary model is rate-limited, try alternatives in order.
-# Each model has separate rate-limit quotas, so spreading across models
-# helps absorb free-tier daily limits.
-GEMINI_MODELS = [
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-2.5-flash-lite",
-    "gemini-2.5-flash",
-    "gemini-3.1-flash-lite",
+OPENAI_MODELS = [
+    "gpt-4o-mini",
+    "gpt-3.5-turbo",
+    "gpt-4o",
 ]
 
 
 def extract_search_params(user_query: str) -> dict:
     """
-    Call Google Gemini to extract structured search parameters
+    Call OpenAI ChatGPT to extract structured search parameters
     from a natural language travel query.
 
     Implements a model fallback chain: if the primary model is rate-limited
@@ -204,58 +201,57 @@ def extract_search_params(user_query: str) -> dict:
     Returns a dict with keys: origin, destination, travel_date,
     time_preference, bus_type, max_price (any may be null).
     """
-    import time
-    client = _get_gemini_client()
+    client = _get_openai_client()
     system_prompt = _build_system_prompt()
 
     last_error = None
 
-    for model_name in GEMINI_MODELS:
+    for model_name in OPENAI_MODELS:
         try:
-            logger.info(f"Trying Gemini model: {model_name}")
-            response = client.models.generate_content(
+            logger.info(f"Trying OpenAI model: {model_name}")
+            response = client.chat.completions.create(
                 model=model_name,
-                contents=user_query,
-                config=genai_types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    temperature=0.1,
-                    max_output_tokens=300,
-                    response_mime_type="application/json",
-                ),
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_query},
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.1,
+                max_tokens=300,
             )
-            logger.info(f"Gemini model {model_name} responded successfully")
-            return _parse_gemini_response(response.text)
+            raw_text = response.choices[0].message.content or ""
+            logger.info(f"OpenAI model {model_name} responded successfully")
+            return _parse_ai_response(raw_text)
 
         except Exception as e:
             error_str = str(e)
             last_error = e
-            logger.warning(f"Gemini model {model_name} failed: {error_str[:200]}")
+            logger.warning(f"OpenAI model {model_name} failed: {error_str[:200]}")
 
-            # Only try the next model if this was a rate-limit or availability error
-            if any(code in error_str for code in ["429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE"]):
+            # Try the next model if this was a rate-limit or availability error
+            if any(code in error_str for code in ["429", "RateLimitError", "503", "ServiceUnavailableError"]):
                 logger.info(f"Rate-limited on {model_name}, trying next model...")
-                time.sleep(1)  # Brief pause before trying next model
+                time.sleep(1)
                 continue
             else:
-                # Non-rate-limit error (auth, network, etc.) — don't bother retrying
                 break
 
     # All models exhausted or non-retryable error
-    logger.error(f"All Gemini models failed. Last error: {last_error}")
+    logger.error(f"All OpenAI models failed. Last error: {last_error}")
     return {"error": f"AI service temporarily unavailable: {str(last_error)}"}
 
 
 def search_buses_with_ai(user_query: str, db: Session) -> dict:
     """
     End-to-end AI search pipeline:
-    1. Extract structured params via Gemini
+    1. Extract structured params via OpenAI ChatGPT
     2. Build SQL filters from extracted params
     3. Query database
     4. Score and rank results by relevance
 
     Returns dict with: extracted_params, buses (ranked), message
     """
-    # ── Step 1: Extract parameters via Gemini ─────────────────────────────
+    # ── Step 1: Extract parameters via OpenAI ─────────────────────────────
     params = extract_search_params(user_query)
 
     if "error" in params:
@@ -291,7 +287,7 @@ def search_buses_with_ai(user_query: str, db: Session) -> dict:
             query = query.filter(Bus.departure_date == travel_date)
             filters_applied.append(f"date={travel_date_str}")
         except ValueError:
-            logger.warning(f"Invalid date from Gemini: {travel_date_str}")
+            logger.warning(f"Invalid date from OpenAI: {travel_date_str}")
 
     # ── Step 3: Execute query ─────────────────────────────────────────────
     buses = query.all()
