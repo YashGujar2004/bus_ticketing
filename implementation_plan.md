@@ -46,7 +46,7 @@ graph TD
 | :--- | :--- | :--- |
 | **Backend Framework** | **Python (FastAPI)** | High-performance asynchronous execution, native Pydantic data validation, automatic OpenAPI/Swagger documentation, and clean RESTful design. |
 | **Database & ORM** | **SQLAlchemy 2.0 + PostgreSQL** | Production-grade RDBMS with full ACID compliance, `SELECT ... FOR UPDATE` row-level locking for atomic seat inventory, and robust concurrent transaction handling. |
-| **AI / NLP Engine** | **Google Gemini API (`google-genai` SDK)** | Natural language entity extraction (Origin, Destination, Travel Date, Time Preference, Bus Type, Price) converting conversational prompts into structured search filters via Gemini's function-calling / structured output. |
+| **AI / NLP Engine** | **Openai API (`openai` SDK)** | Natural language entity extraction (Origin, Destination, Travel Date, Time Preference, Bus Type, Price) converting conversational prompts into structured search filters via Gemini's function-calling / structured output. |
 | **Frontend Framework** | **React 18 (Vite + TypeScript/JS)** | Fast component-based rendering, modular architecture, separate routing for Admin/Customer workspaces. |
 | **Styling & UI/UX** | **Vanilla CSS (Modern Design System)** | Premium custom design system using CSS variables, glassmorphism, vibrant gradients, dark/light themes, and interactive micro-animations. |
 | **HTTP Client & State** | **Axios & React Context / TanStack Query** | Efficient server state management, caching, and optimistic UI updates during seat bookings. |
