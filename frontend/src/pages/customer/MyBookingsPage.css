@@ -1,0 +1,107 @@
+/* MyBookingsPage */
+.page-header {
+  margin-bottom: var(--space-xl);
+}
+.page-header h1 { margin-bottom: var(--space-xs); }
+
+.bookings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: var(--space-lg);
+}
+
+.booking-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.booking-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.booking-pnr { display: flex; align-items: center; gap: var(--space-sm); }
+.pnr-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.pnr-code {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--primary-400);
+  letter-spacing: 0.05em;
+}
+
+/* Route display */
+.booking-route-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+}
+.booking-city { display: flex; flex-direction: column; gap: 2px; }
+.city-name { font-weight: 600; font-size: 1rem; }
+.city-time { font-size: 0.75rem; color: var(--text-muted); }
+.booking-arrow {
+  font-size: 1.25rem;
+  color: var(--primary-400);
+  font-weight: 700;
+  flex: 1;
+  text-align: center;
+}
+
+/* Detail items */
+.booking-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+}
+.detail-item { display: flex; flex-direction: column; gap: 2px; }
+.detail-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.detail-price {
+  font-weight: 700;
+  color: var(--success);
+}
+
+/* Passenger tags */
+.booking-passengers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.passenger-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+.passenger-tag {
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Actions */
+.booking-actions {
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 640px) {
+  .bookings-grid { grid-template-columns: 1fr; }
+}

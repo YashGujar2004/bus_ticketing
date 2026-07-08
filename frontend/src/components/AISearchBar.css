@@ -1,0 +1,101 @@
+/* AI Search Bar — prominent conversational input with shimmer effects */
+.ai-search-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.ai-search-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ai-sparkle { font-size: 1.125rem; }
+.ai-sub {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.ai-search-form { width: 100%; }
+
+.ai-search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 6px 6px 6px var(--space-md);
+  background: var(--bg-input);
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-search-input-wrapper:focus-within {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1), var(--shadow-glow);
+}
+
+/* Shimmer border effect when searching */
+.ai-search-input-wrapper.searching::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(90deg,
+    var(--primary-500),
+    var(--accent-violet),
+    var(--accent-purple),
+    var(--primary-500)
+  );
+  background-size: 300% 100%;
+  animation: shimmer 1.5s linear infinite;
+  z-index: -1;
+}
+
+.ai-search-icon { font-size: 1.125rem; flex-shrink: 0; }
+
+.ai-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  outline: none;
+  min-width: 0;
+}
+.ai-search-input::placeholder { color: var(--text-muted); font-size: 0.8125rem; }
+.ai-search-input:disabled { opacity: 0.7; }
+
+.ai-search-btn {
+  padding: 0.625rem 1.5rem;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Spinner */
+.ai-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spinRotate 0.6s linear infinite;
+  display: inline-block;
+}
+
+@media (max-width: 640px) {
+  .ai-search-input-wrapper {
+    flex-direction: column;
+    padding: var(--space-md);
+    gap: var(--space-md);
+  }
+  .ai-search-btn { width: 100%; }
+  .ai-sub { display: none; }
+}

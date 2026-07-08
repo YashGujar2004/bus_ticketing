@@ -1,0 +1,83 @@
+/* BusCard — glassmorphism route card */
+.bus-card { display: flex; flex-direction: column; gap: var(--space-md); }
+.bus-card.sold-out { opacity: 0.6; }
+
+.bus-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bus-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Route timeline */
+.bus-route {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+}
+
+.route-point { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 80px; }
+.route-time { font-size: 1.125rem; font-weight: 700; color: var(--text-primary); }
+.route-city { font-size: 0.8125rem; font-weight: 500; color: var(--text-secondary); }
+.route-date { font-size: 0.6875rem; color: var(--text-muted); }
+
+.route-line { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.route-duration { font-size: 0.6875rem; color: var(--text-muted); font-weight: 500; }
+
+.route-connector {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0;
+}
+.route-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary-500);
+  flex-shrink: 0;
+}
+.route-dash {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary-500), var(--accent-violet));
+  opacity: 0.5;
+}
+.route-arrow {
+  color: var(--accent-violet);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* Footer */
+.bus-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.bus-seats { display: flex; flex-direction: column; gap: 2px; }
+.seats-count { font-size: 0.8125rem; color: var(--success); font-weight: 500; }
+.seats-count.seats-low { color: var(--warning); }
+.seats-urgency {
+  font-size: 0.6875rem;
+  color: var(--danger);
+  font-weight: 600;
+  animation: pulse 2s ease-in-out infinite;
+}
+.seats-sold-out { font-size: 0.875rem; color: var(--danger); font-weight: 600; }
+
+.bus-price-action { display: flex; align-items: center; gap: var(--space-md); }
+.bus-price {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}

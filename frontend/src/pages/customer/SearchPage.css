@@ -1,0 +1,172 @@
+/* SearchPage — hero, filters, results, and booking modal styles */
+.search-hero {
+  text-align: center;
+  padding: var(--space-2xl) 0 var(--space-xl);
+}
+.search-hero h1 { margin-bottom: var(--space-sm); }
+.search-hero p { font-size: 1.0625rem; }
+
+/* AI extracted params chips */
+.ai-extracted-params {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+.params-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.param-chip {
+  padding: 4px 10px;
+  background: rgba(79, 70, 229, 0.12);
+  border: 1px solid rgba(79, 70, 229, 0.25);
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  color: var(--primary-400);
+  font-weight: 500;
+}
+.ai-message {
+  margin-top: var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.search-section {
+  margin-bottom: var(--space-lg);
+}
+
+/* Divider */
+.search-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin: var(--space-lg) 0;
+}
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+.divider-text {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Standard filter form */
+.filter-form {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) auto;
+  gap: var(--space-md);
+  align-items: end;
+}
+.filter-actions {
+  display: flex;
+  gap: var(--space-sm);
+  padding-bottom: 1px;
+}
+
+@media (max-width: 900px) {
+  .filter-form {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .filter-actions {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 500px) {
+  .filter-form { grid-template-columns: 1fr; }
+}
+
+/* Results */
+.results-section {
+  margin-top: var(--space-xl);
+}
+.results-header {
+  margin-bottom: var(--space-lg);
+}
+.results-header h3 { color: var(--text-secondary); font-weight: 500; font-size: 1rem; }
+
+.bus-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-lg);
+}
+
+/* Empty state */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: var(--space-3xl) var(--space-lg);
+}
+.empty-icon { font-size: 3rem; display: block; margin-bottom: var(--space-md); opacity: 0.5; }
+.empty-state h4 { margin-bottom: var(--space-xs); }
+
+/* Booking modal form */
+.booking-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.booking-summary {
+  padding: var(--space-md) !important;
+  text-align: center;
+}
+.booking-route {
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+.booking-meta { font-size: 0.8125rem; }
+
+.passengers-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.passenger-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.passenger-num {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 24px;
+}
+.passenger-age { max-width: 80px; }
+.passenger-gender { max-width: 110px; }
+
+.booking-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+.total-price {
+  font-size: 1.5rem;
+  font-weight: 800;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@media (max-width: 640px) {
+  .passenger-row { flex-wrap: wrap; }
+  .passenger-age, .passenger-gender { max-width: 100%; flex: 1; }
+  .bus-grid { grid-template-columns: 1fr; }
+}

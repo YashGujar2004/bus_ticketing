@@ -1,0 +1,24 @@
+# === Core Framework ===
+fastapi==0.115.12
+uvicorn[standard]==0.34.3
+
+# === Database & ORM ===
+sqlalchemy==2.0.41
+psycopg2-binary==2.9.10
+alembic==1.16.2
+
+# === Configuration & Environment ===
+python-dotenv==1.1.1
+pydantic-settings==2.9.1
+
+# === Authentication ===
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.4.0
+bcrypt==3.2.2
+
+# === AI / NLP ===
+google-genai==1.16.1
+
+# === Utilities ===
+python-multipart==0.0.20
+email-validator==2.3.0
