@@ -225,26 +225,5 @@ To achieve an interface that wows users at first glance, the frontend adheres to
    * Smooth hover elevation effects on bus cards and interactive action buttons.
    * Animated skeleton loaders during API fetching and AI natural language search interpretation.
    * Shimmer effects on the AI Search Bar to highlight intelligence features.
-
----
-
-## 7. Phased Implementation Roadmap
-
-* [ ] **Phase 1: Backend Foundation & Database Models**
-  * Set up FastAPI project structure, SQLAlchemy ORM configuration, and **PostgreSQL** database connection (via `asyncpg` or `psycopg2`).
-  * Implement database models (`User`, `Bus`, `Booking`, `Passenger`) and schema migration scripts.
-* [ ] **Phase 2: Core REST APIs & Atomic Booking Engine**
-  * Develop CRUD endpoints for Bus route management.
-  * Implement the atomic booking transaction flow with overbooking prevention and seat release on cancellation.
-* [ ] **Phase 3: AI NLP Search Engine Integration (Google Gemini)**
-  * Build the `/api/buses/ai-search` endpoint with **server-side current date injection** into the Gemini system prompt.
-  * Integrate `google-genai` SDK with structured output / function-calling to parse user travel descriptions (including relative date resolution) into structured SQL filters and relevance algorithms.
-* [ ] **Phase 4: Frontend Foundations & Design System**
-  * Initialize Vite + React application with modern CSS variables, typography, and responsive layouts.
-  * Create core reusable UI components (Navbar, Modal, Status Badges, Toast notifications, Glassmorphism Cards).
-* [ ] **Phase 5: Customer & Admin Views Development**
-  * **Customer View**: Implement standard search, interactive AI search bar, bus results listing, passenger booking modal, and "My Bookings" management page.
-  * **Admin View**: Build the fleet management table/modal and the rich visual analytics dashboard with KPIs and demand breakdown.
-* [ ] **Phase 6: End-to-End Polish & Verification**
   * Perform concurrency testing to verify zero-overbooking guarantees.
   * Refine UI animations, responsive behavior across mobile/desktop, and ensure robust error handling across all API states.
