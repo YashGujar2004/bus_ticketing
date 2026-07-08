@@ -7,6 +7,7 @@ date into the system prompt so relative expressions like "tomorrow" or
 "next Friday" are resolved into absolute YYYY-MM-DD dates by the LLM.
 """
 
+import difflib
 import json
 import logging
 import time
@@ -41,22 +42,22 @@ IMPORTANT CONTEXT:
 - Current time is: {current_time} IST
 
 EXTRACTION RULES:
-1. **origin**: The departure city. Extract the city name, capitalize properly.
-2. **destination**: The arrival city. Extract the city name, capitalize properly.
-3. **travel_date**: Resolve to an absolute date in YYYY-MM-DD format.
+1. **origin**: The departure city. Extract the city name, capitalize properly. Correct and normalize minor spelling mistakes (e.g. "Banglore" -> "Bangalore", "Hydrabad" -> "Hyderabad", "Mumbay" -> "Mumbai", "Chenai" -> "Chennai", "Coimbator" -> "Coimbatore", "Delih" -> "Delhi").
+2. **destination**: The arrival city. Extract the city name, capitalize properly. Correct and normalize minor spelling mistakes.
+3. **travel_date**: Resolve to an absolute date in YYYY-MM-DD format ONLY if explicitly mentioned or clearly implied.
    - "tomorrow" → the day after today's date
    - "day after tomorrow" → two days after today
    - "today" / "tonight" → today's date
    - "this weekend" → the coming Saturday
    - "next Monday" / "next Friday" etc. → the next occurrence of that weekday
    - "July 15" / "15th July" → the explicit date in the current or next year
-   - If NO date is mentioned at all, default to today's & next date: {current_date}, {next_date} 
+   - If NO explicit date is mentioned in the user query, set "travel_date": null
 4. **time_preference**: One of "Morning" (05:00-11:59), "Afternoon" (12:00-16:59),
    "Evening" (17:00-20:59), "Night" (21:00-04:59), or null if not specified.
-   - "morning bus" → "Morning"
-   - "evening" / "after 5 PM" → "Evening"
-   - "night" / "overnight" / "late night" → "Night"
-   - "afternoon" / "post lunch" → "Afternoon"
+   - "morning bus" / "early morning" → "Morning"
+   - "afternoon" / "post lunch" / "12 pm" / "2 pm" → "Afternoon"
+   - "evening" / "after 5 PM" / "6 pm" → "Evening"
+   - "night" / "overnight" / "late night" / "early night" / "sleeper night" → "Night"
 5. **bus_type**: One of "AC", "Non-AC", "Sleeper", or null if not specified.
    - "AC" / "air conditioned" → "AC"
    - "non AC" / "non-AC" / "ordinary" / "regular" → "Non-AC"
@@ -118,28 +119,62 @@ def _parse_ai_response(raw_text: str) -> dict:
         return {"error": f"Failed to parse AI response: {str(e)}"}
 
 
+def _match_city(query_city: Optional[str], db_city: str) -> bool:
+    """
+    Check if query_city matches db_city allowing exact match, substring match,
+    or fuzzy match (to handle minor spelling mistakes like 'Banglore' vs 'Bangalore').
+    """
+    if not query_city or not db_city:
+        return True
+    q = query_city.strip().lower()
+    d = db_city.strip().lower()
+    if q == d or q in d or d in q:
+        return True
+    # Fuzzy match threshold 0.65 for typos
+    ratio = difflib.SequenceMatcher(None, q, d).ratio()
+    return ratio >= 0.65
+
+
 def _score_bus(bus: Bus, params: dict) -> float:
     """
     Score a bus result for relevance ranking (higher = better match).
 
     Scoring factors:
-    - Exact date match: +40 points
-    - Time preference match: +25 points
-    - Bus type match: +20 points
-    - Price within budget: +15 points
-    - Available seats > 0: +5 bonus (urgency signal)
+    - Origin / Destination match: +40 points each (+80 total)
+    - Exact date match: +50 points (close date: +20 points)
+    - Time preference match: +30 points (close time: +10 points)
+    - Bus type match: +25 points
+    - Price within budget: +20 points
+    - Available seats > 0: +5 bonus
     """
     score = 0.0
+
+    # City match rewards
+    origin = params.get("origin")
+    if origin and _match_city(origin, bus.origin):
+        score += 40
+
+    destination = params.get("destination")
+    if destination and _match_city(destination, bus.destination):
+        score += 40
 
     # Date match
     travel_date_str = params.get("travel_date")
     if travel_date_str:
         try:
             travel_date = date.fromisoformat(travel_date_str)
-            if bus.departure_date == travel_date:
-                score += 40
+            days_diff = abs((bus.departure_date - travel_date).days)
+            if days_diff == 0:
+                score += 50
+            elif days_diff == 1:
+                score += 20
+            elif days_diff <= 3:
+                score += 10
         except ValueError:
             pass
+    else:
+        # No date specified: give all available future/current buses a solid baseline
+        score += 20
 
     # Time preference match
     time_pref = params.get("time_preference")
@@ -148,18 +183,20 @@ def _score_bus(bus: Bus, params: dict) -> float:
         dep_hour = bus.departure_time.hour
 
         if start_hour < end_hour:
-            # Normal range (e.g., Morning: 5-12)
             if start_hour <= dep_hour < end_hour:
-                score += 25
+                score += 30
+            elif abs(dep_hour - start_hour) <= 2 or abs(dep_hour - end_hour) <= 2:
+                score += 10
         else:
-            # Wrapping range (Night: 21-5)
             if dep_hour >= start_hour or dep_hour < end_hour:
-                score += 25
+                score += 30
+            else:
+                score += 10
 
     # Bus type match
     bus_type = params.get("bus_type")
-    if bus_type and bus.bus_type == bus_type:
-        score += 20
+    if bus_type and bus.bus_type.lower() == bus_type.lower():
+        score += 25
 
     # Price within budget
     max_price = params.get("max_price")
@@ -167,10 +204,7 @@ def _score_bus(bus: Bus, params: dict) -> float:
         try:
             max_price = float(max_price)
             if bus.price <= max_price:
-                score += 15
-            else:
-                # Penalize buses over budget, but don't exclude them
-                score -= 5
+                score += 20
         except (ValueError, TypeError):
             pass
 
@@ -182,7 +216,6 @@ def _score_bus(bus: Bus, params: dict) -> float:
 
 
 # ── Model Fallback Chain ─────────────────────────────────────────────────────
-# If the primary model is rate-limited, try alternatives in order.
 OPENAI_MODELS = [
     "gpt-4o-mini",
     "gpt-3.5-turbo",
@@ -197,9 +230,6 @@ def extract_search_params(user_query: str) -> dict:
 
     Implements a model fallback chain: if the primary model is rate-limited
     (429), tries alternative models before giving up.
-
-    Returns a dict with keys: origin, destination, travel_date,
-    time_preference, bus_type, max_price (any may be null).
     """
     client = _get_openai_client()
     system_prompt = _build_system_prompt()
@@ -228,7 +258,6 @@ def extract_search_params(user_query: str) -> dict:
             last_error = e
             logger.warning(f"OpenAI model {model_name} failed: {error_str[:200]}")
 
-            # Try the next model if this was a rate-limit or availability error
             if any(code in error_str for code in ["429", "RateLimitError", "503", "ServiceUnavailableError"]):
                 logger.info(f"Rate-limited on {model_name}, trying next model...")
                 time.sleep(1)
@@ -236,7 +265,6 @@ def extract_search_params(user_query: str) -> dict:
             else:
                 break
 
-    # All models exhausted or non-retryable error
     logger.error(f"All OpenAI models failed. Last error: {last_error}")
     return {"error": f"AI service temporarily unavailable: {str(last_error)}"}
 
@@ -245,13 +273,12 @@ def search_buses_with_ai(user_query: str, db: Session) -> dict:
     """
     End-to-end AI search pipeline:
     1. Extract structured params via OpenAI ChatGPT
-    2. Build SQL filters from extracted params
-    3. Query database
-    4. Score and rank results by relevance
+    2. Query active buses and perform robust fuzzy matching on origin & destination
+    3. Score all matching buses across date, time preference, bus type, and price
+    4. Rank results descending by relevance score
 
     Returns dict with: extracted_params, buses (ranked), message
     """
-    # ── Step 1: Extract parameters via OpenAI ─────────────────────────────
     params = extract_search_params(user_query)
 
     if "error" in params:
@@ -263,48 +290,43 @@ def search_buses_with_ai(user_query: str, db: Session) -> dict:
 
     logger.info(f"AI extracted params: {params}")
 
-    # ── Step 2: Build database query with extracted filters ───────────────
-    query = db.query(Bus).filter(Bus.status == "Active")
-    filters_applied = []
-
-    # Origin filter (fuzzy match)
     origin = params.get("origin")
-    if origin:
-        query = query.filter(Bus.origin.ilike(f"%{origin}%"))
-        filters_applied.append(f"origin={origin}")
-
-    # Destination filter (fuzzy match)
     destination = params.get("destination")
-    if destination:
-        query = query.filter(Bus.destination.ilike(f"%{destination}%"))
-        filters_applied.append(f"destination={destination}")
-
-    # Date filter (exact match)
     travel_date_str = params.get("travel_date")
-    if travel_date_str:
-        try:
-            travel_date = date.fromisoformat(travel_date_str)
-            query = query.filter(Bus.departure_date == travel_date)
-            filters_applied.append(f"date={travel_date_str}")
-        except ValueError:
-            logger.warning(f"Invalid date from OpenAI: {travel_date_str}")
 
-    # ── Step 3: Execute query ─────────────────────────────────────────────
-    buses = query.all()
+    # Fetch all active buses
+    all_active_buses = db.query(Bus).filter(Bus.status == "Active").all()
 
-    # ── Step 4: Score and rank ────────────────────────────────────────────
-    scored_buses = [(bus, _score_bus(bus, params)) for bus in buses]
+    # First pass: filter by fuzzy matching origin and destination if provided
+    matched_buses = []
+    for bus in all_active_buses:
+        origin_ok = _match_city(origin, bus.origin) if origin else True
+        dest_ok = _match_city(destination, bus.destination) if destination else True
+
+        if origin_ok and dest_ok:
+            matched_buses.append(bus)
+
+    # Fallback: if no buses matched both origin and destination strict/fuzzy filters,
+    # or if neither was specified, evaluate all active buses
+    candidates = matched_buses if matched_buses else all_active_buses
+
+    # Score and sort candidates
+    scored_buses = [(bus, _score_bus(bus, params)) for bus in candidates]
     scored_buses.sort(key=lambda x: x[1], reverse=True)
 
     ranked_buses = [bus for bus, score in scored_buses]
 
-    # ── Build human-readable message ──────────────────────────────────────
+    # Build human-readable message
     if ranked_buses:
         msg_parts = [f"Found {len(ranked_buses)} bus(es)"]
         if origin and destination:
             msg_parts.append(f"from {origin} to {destination}")
+        elif origin:
+            msg_parts.append(f"from {origin}")
+        elif destination:
+            msg_parts.append(f"to {destination}")
         if travel_date_str:
-            msg_parts.append(f"on {travel_date_str}")
+            msg_parts.append(f"for {travel_date_str}")
         time_pref = params.get("time_preference")
         if time_pref:
             msg_parts.append(f"({time_pref} departure)")
