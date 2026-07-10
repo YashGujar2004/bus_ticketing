@@ -10,6 +10,8 @@ from app.core.database import get_db
 from app.core.security import require_admin
 from app.models.bus import Bus
 from app.models.booking import Booking
+from app.models.user import User
+from app.models.passenger import Passenger
 
 router = APIRouter()
 
@@ -117,3 +119,33 @@ def get_bus_occupancy(db: Session = Depends(get_db), admin=Depends(require_admin
         }
         for b in buses
     ]
+
+
+@router.get("/bookings")
+def get_all_bookings_for_admin(db: Session = Depends(get_db), admin=Depends(require_admin)):
+    """
+    Returns all bookings across the platform enriched with customer account details
+    and passenger names for admin monitoring.
+    """
+    bookings = db.query(Booking).order_by(Booking.booking_time.desc()).all()
+    result = []
+    for b in bookings:
+        user = db.query(User).filter(User.id == b.user_id).first()
+        bus = b.bus
+        result.append({
+            "id": b.id,
+            "pnr_code": b.pnr_code,
+            "status": b.status,
+            "total_amount": b.total_amount,
+            "seat_count": b.seat_count,
+            "booking_time": b.booking_time,
+            "customer_username": user.username if user else "Unknown",
+            "customer_email": user.email if user else "Unknown",
+            "bus_name": bus.name if bus else "N/A",
+            "route": f"{bus.origin} -> {bus.destination}" if bus else "N/A",
+            "passengers": [
+                {"name": p.full_name, "age": p.age, "gender": p.gender}
+                for p in b.passengers
+            ],
+        })
+    return result

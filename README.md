@@ -5,8 +5,10 @@ A modern, full-stack bus ticketing application featuring a natural language sear
 ## 🌟 Key Features
 
 * **AI-Powered Search:** Customers can search for buses using natural language (e.g., "Cheapest bus to Pune from Mumbai this weekend"). Uses OpenAI ChatGPT (`gpt-4o-mini`) with structured JSON mode and a multi-model fallback chain to ensure high availability.
+* **Downloadable PDF Invoices:** Customers and admins can download official PDF booking invoices (generated server-side using ReportLab) for confirmed reservations.
+* **Admin Passenger & Booking Monitoring:** Admin dashboard includes a dedicated Customer Bookings & Passenger Directory to view customer usernames, emails, routes, and passenger lists.
+* **Smart Auto-Fill:** When booking tickets, passenger details automatically default to the logged-in user's account name for faster checkout.
 * **Atomic Transactions:** Backend booking engine uses PostgreSQL row-level locking to prevent double-booking and overbooking under high concurrency.
-* **Admin Dashboard:** Comprehensive metrics showing total/active buses, route demand, bus occupancy rates, and revenue analytics.
 * **Glassmorphism UI:** A custom, highly responsive CSS design system with micro-animations and seamless user experience.
 * **Role-Based Auth:** Secure JWT-based authentication distinguishing between `customer` and `admin` roles.
 

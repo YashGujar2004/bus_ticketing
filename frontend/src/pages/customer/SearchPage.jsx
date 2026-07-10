@@ -109,7 +109,7 @@ function CityAutocompleteInput({ id, label, placeholder, value, onChange, option
 }
 
 export default function SearchPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -199,7 +199,7 @@ export default function SearchPage() {
       return;
     }
     setBookingBus(bus);
-    setPassengers([{ full_name: '', age: '', gender: 'Male' }]);
+    setPassengers([{ full_name: user?.username || '', age: '', gender: 'Male' }]);
   };
 
   const addPassenger = () => {

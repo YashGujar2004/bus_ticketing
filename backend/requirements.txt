@@ -22,3 +22,4 @@ openai>=1.40.0
 # === Utilities ===
 python-multipart==0.0.20
 email-validator==2.3.0
+reportlab==5.0.0

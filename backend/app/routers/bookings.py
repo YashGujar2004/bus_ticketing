@@ -1,6 +1,8 @@
 #Bookings router — create bookings with atomic overbooking prevention and cancellation.
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
+import io
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -155,3 +157,112 @@ def cancel_booking(
     db.refresh(booking)
 
     return _build_booking_response(booking)
+
+
+@router.get("/{booking_id}/invoice")
+def get_booking_invoice(
+    booking_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Generate and return a downloadable PDF invoice for a confirmed ticket booking.
+    """
+    booking = db.query(Booking).filter(Booking.id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.user_id != current_user.id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to view this invoice")
+
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=40,
+        leftMargin=40,
+        topMargin=40,
+        bottomMargin=40,
+    )
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "InvoiceTitle",
+        parent=styles["Heading1"],
+        fontSize=22,
+        textColor=colors.HexColor("#38bdf8"),
+        spaceAfter=10,
+    )
+    sub_style = ParagraphStyle(
+        "InvoiceSub",
+        parent=styles["Normal"],
+        fontSize=11,
+        textColor=colors.HexColor("#64748b"),
+        spaceAfter=15,
+    )
+
+    story = []
+    story.append(Paragraph("BusTicket — Official Tax & Booking Invoice", title_style))
+    story.append(Paragraph(f"PNR Code: <b>{booking.pnr_code}</b> | Status: <b>{booking.status}</b>", sub_style))
+    story.append(Spacer(1, 10))
+
+    bus = booking.bus
+    bus_name = bus.name if bus else "N/A"
+    route = f"{bus.origin} -> {bus.destination}" if bus else "N/A"
+    dep_time = bus.departure_time.strftime("%d %b %Y, %I:%M %p") if bus and bus.departure_time else "N/A"
+
+    meta_data = [
+        ["Booking ID:", str(booking.id), "Date Booked:", booking.booking_time.strftime("%d %b %Y, %I:%M %p")],
+        ["Bus Service:", bus_name, "Route:", route],
+        ["Departure:", dep_time, "Total Seats:", str(booking.seat_count)],
+    ]
+    meta_table = Table(meta_data, colWidths=[90, 170, 80, 180])
+    meta_table.setStyle(TableStyle([
+        ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor("#1e293b")),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTNAME", (2, 0), (2, -1), "Helvetica-Bold"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.append(meta_table)
+    story.append(Spacer(1, 15))
+
+    pass_data = [["#", "Passenger Name", "Age", "Gender"]]
+    for idx, p in enumerate(booking.passengers, 1):
+        pass_data.append([str(idx), p.full_name, str(p.age), p.gender])
+
+    pass_table = Table(pass_data, colWidths=[40, 260, 100, 120])
+    pass_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f172a")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+    ]))
+    story.append(pass_table)
+    story.append(Spacer(1, 20))
+
+    summary_data = [
+        ["Total Amount Paid (INR):", f"INR {booking.total_amount:,.2f}"]
+    ]
+    sum_table = Table(summary_data, colWidths=[380, 140])
+    sum_table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 13),
+        ("TEXTCOLOR", (1, 0), (1, 0), colors.HexColor("#059669")),
+        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+    ]))
+    story.append(sum_table)
+
+    doc.build(story)
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+
+    headers = {
+        "Content-Disposition": f'attachment; filename="BusTicket_Invoice_{booking.pnr_code}.pdf"'
+    }
+    return Response(content=pdf_bytes, media_type="application/pdf", headers=headers)

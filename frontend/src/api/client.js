@@ -57,10 +57,12 @@ export const bookingAPI = {
   create: (data) => client.post('/bookings', data),
   myBookings: () => client.get('/bookings/my-bookings'),
   cancel: (id) => client.post(`/bookings/${id}/cancel`),
+  downloadInvoice: (id) => client.get(`/bookings/${id}/invoice`, { responseType: 'blob' }),
 };
 
 export const adminAPI = {
   dashboard: () => client.get('/admin/dashboard'),
   routeDemand: () => client.get('/admin/route-demand'),
   busOccupancy: () => client.get('/admin/bus-occupancy'),
+  bookings: () => client.get('/admin/bookings'),
 };

@@ -12,19 +12,22 @@ export default function AdminDashboard() {
   const [kpi, setKpi] = useState(null);
   const [routeDemand, setRouteDemand] = useState([]);
   const [occupancy, setOccupancy] = useState([]);
+  const [allBookings, setAllBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [kpiRes, demandRes, occupancyRes] = await Promise.all([
+        const [kpiRes, demandRes, occupancyRes, bookingsRes] = await Promise.all([
           adminAPI.dashboard(),
           adminAPI.routeDemand(),
           adminAPI.busOccupancy(),
+          adminAPI.bookings(),
         ]);
         setKpi(kpiRes.data);
         setRouteDemand(demandRes.data);
         setOccupancy(occupancyRes.data);
+        setAllBookings(bookingsRes.data);
       } catch {
         toast.error('Failed to load dashboard data');
       } finally {
@@ -147,6 +150,65 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <p className="text-secondary">No bus occupancy data.</p>
+        )}
+      </section>
+
+      {/* Customer Bookings & Passenger Directory */}
+      <section className="dashboard-section animate-fade-in-up">
+        <h3>👥 Customer Bookings & Passenger Details</h3>
+        {allBookings.length > 0 ? (
+          <div className="table-wrapper glass-card">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>PNR / Status</th>
+                  <th>Customer Account</th>
+                  <th>Bus & Route</th>
+                  <th>Passengers</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allBookings.map((b) => (
+                  <tr key={b.id}>
+                    <td>
+                      <div style={{ fontWeight: 'bold' }}>{b.pnr_code}</div>
+                      <span className={`status-badge ${b.status === 'Confirmed' ? 'status-confirmed' : 'status-cancelled'}`}>
+                        {b.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>👤 {b.customer_username}</div>
+                      <div className="text-secondary" style={{ fontSize: '0.8rem' }}>✉️ {b.customer_email}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{b.bus_name}</div>
+                      <div className="text-secondary" style={{ fontSize: '0.8rem' }}>{b.route}</div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {b.passengers.map((p, idx) => (
+                          <span key={idx} className="param-chip" style={{ fontSize: '0.75rem', padding: '2px 8px' }}>
+                            {p.name} ({p.age}{p.gender[0]})
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 'bold', color: 'var(--success)' }}>
+                        ₹{b.total_amount.toLocaleString('en-IN')}
+                      </div>
+                      <div className="text-secondary" style={{ fontSize: '0.75rem' }}>
+                        {new Date(b.booking_time).toLocaleDateString('en-IN')}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-secondary">No customer bookings recorded yet.</p>
         )}
       </section>
     </div>

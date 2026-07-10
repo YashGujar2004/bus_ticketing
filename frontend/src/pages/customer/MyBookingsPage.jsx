@@ -42,6 +42,23 @@ export default function MyBookingsPage() {
     }
   };
 
+  const handleDownloadInvoice = async (booking) => {
+    try {
+      const response = await bookingAPI.downloadInvoice(booking.id);
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `BusTicket_Invoice_${booking.pnr_code}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Invoice downloaded successfully');
+    } catch {
+      toast.error('Failed to download invoice');
+    }
+  };
+
   const formatDate = (d) =>
     new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
   const formatTime = (d) =>
@@ -126,7 +143,14 @@ export default function MyBookingsPage() {
 
               {/* Actions */}
               {booking.status === 'Confirmed' && (
-                <div className="booking-actions">
+                <div className="booking-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => handleDownloadInvoice(booking)}
+                    id={`download-invoice-${booking.id}`}
+                  >
+                    📄 Download PDF Invoice
+                  </button>
                   <button
                     className="btn btn-danger btn-sm"
                     onClick={() => handleCancel(booking.id)}
