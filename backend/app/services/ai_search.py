@@ -42,7 +42,7 @@ IMPORTANT CONTEXT:
 - Current time is: {current_time} IST
 
 EXTRACTION RULES:
-1. **origin**: The departure city. Extract the city name, capitalize properly. Correct and normalize minor spelling mistakes (e.g. "Banglore" -> "Bangalore", "Hydrabad" -> "Hyderabad", "Mumbay" -> "Mumbai", "Chenai" -> "Chennai", "Coimbator" -> "Coimbatore", "Delih" -> "Delhi").
+1. **origin**: The departure city. Extract the city name, capitalize properly. Correct and normalize minor spelling mistakes (e.g. "Banglore" -> "Bangalore", "hydrabad" -> "Hyderabad", "mumbay" -> "Mumbai", "Chenai" -> "Chennai", "Coimbator" -> "Coimbatore", "delih" -> "Delhi").
 2. **destination**: The arrival city. Extract the city name, capitalize properly. Correct and normalize minor spelling mistakes.
 3. **travel_date**: Resolve to an absolute date in YYYY-MM-DD format ONLY if explicitly mentioned or clearly implied.
    - "tomorrow" → the day after today's date

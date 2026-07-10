@@ -43,8 +43,13 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
 def login(payload: UserLogin, db: Session = Depends(get_db)):
     """Authenticate user credentials and return a JWT access token."""
     user = db.query(User).filter(User.username == payload.username).first()
-    if not user or not pwd_context.verify(payload.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="Account not registered. Please create an account first."
+        )
+    if not pwd_context.verify(payload.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Incorrect password. Please try again.")
 
     token = create_access_token(data={"sub": str(user.id), "role": user.role})
     return TokenResponse(

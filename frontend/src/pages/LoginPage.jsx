@@ -22,7 +22,15 @@ export default function LoginPage() {
       toast.success(`Welcome back, ${data.user.username}!`);
       navigate(data.user.role === 'admin' ? '/admin/dashboard' : '/');
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Login failed');
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail;
+      if (status === 404 || detail?.toLowerCase().includes('not registered')) {
+        toast.error(detail || 'Account not registered. Please create an account first.');
+      } else if (status === 401 || detail?.toLowerCase().includes('incorrect password')) {
+        toast.error(detail || 'Incorrect password. Please try again.');
+      } else {
+        toast.error(detail || 'Login failed');
+      }
     } finally {
       setLoading(false);
     }
